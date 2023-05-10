@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IERC20 {
+    function transferFrom(address sender, address recipient, uint amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint);
+}
+
+contract TokenSale {
+    address public tokenAddress;
+    address public owner;
+    uint public price;
+    uint public totalSold;
+
+    event Sold(address buyer, uint amount);
+
+    constructor(address _tokenAddress, uint _price) {
+        tokenAddress = _tokenAddress;
+        owner = msg.sender;
+        price = _price;
+    }
+
+    function buyTokens(uint amount) external payable {
+        require(msg.value == amount * price, "Incorrect ETH amount");
+        require(IERC20(tokenAddress).balanceOf(address(this)) >= amount, "Not enough tokens available");
+
+        bool success = IERC20(tokenAddress).transferFrom(address(this), msg.sender, amount);
+        require(success, "Token transfer failed");
+
+        totalSold += amount;
+        emit Sold(msg.sender, amount);
+    }
+
+    function withdraw() external {
+        require(msg.sender == owner, "Only owner can withdraw ETH");
+        payable(owner).transfer(address(this).balance);
+    }
+}
